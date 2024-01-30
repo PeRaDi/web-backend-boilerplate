@@ -28,10 +28,7 @@ public class UserRepository {
         PreparedStatementSetter ps = preparedStatement -> preparedStatement.setString(1, username);
         List<User> users =  jdbcTemplate.query(sql, ps, new UserRowMapper());
 
-        if (users.isEmpty())
-            return null;
-
-        return users.get(0);
+        return (users.isEmpty()) ? null : users.get(0);
     }
 
     public User findByEmail(String email) {
@@ -39,10 +36,7 @@ public class UserRepository {
         PreparedStatementSetter ps = preparedStatement -> preparedStatement.setString(1, email);
         List<User> users = jdbcTemplate.query(sql, ps, new UserRowMapper());
 
-        if (users.isEmpty())
-            return null;
-
-        return users.get(0);
+        return (users.isEmpty()) ? null : users.get(0);
     }
 
     public User findByUUID(String uuid) {
@@ -50,22 +44,21 @@ public class UserRepository {
         PreparedStatementSetter ps = preparedStatement -> preparedStatement.setString(1, uuid);
         List<User> users = jdbcTemplate.query(sql, ps, new UserRowMapper());
 
-        if (users.isEmpty())
-            return null;
-
-        return users.get(0);
+        return (users.isEmpty()) ? null : users.get(0);
     }
 
     public User save(User user) {
         String sql = "INSERT INTO users (id, username, email, password, name, role) VALUES (?, ?, ?, ?, ?, ?)";
-        jdbcTemplate.update(sql, user.getUUID().toString(), user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getRole().toString());
-        return user;
+        int rows = jdbcTemplate.update(sql, user.getUUID().toString(), user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getRole().toString());
+
+        return (rows > 0) ? user : null;
     }
 
-    public User update(User user) {
-        String sql = "UPDATE users SET username = ?, email = ?, password = ?, name = ?, role = ? WHERE uuid = ?";
-        jdbcTemplate.update(sql, user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getRole().toString(), user.getUUID().toString());
-        return user;
+    public boolean update(User user) {
+        String sql = "UPDATE `users` SET `username` = ?, `email` = ?, `password` = ?, `name` = ?, `role` = ? WHERE `id` = ?";
+        int rows = jdbcTemplate.update(sql, user.getUsername(), user.getEmail(), user.getPassword(), user.getName(), user.getRole().toString(), user.getUUID().toString());
+
+        return rows > 0;
     }
 }
 

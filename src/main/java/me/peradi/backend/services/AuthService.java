@@ -32,9 +32,12 @@ public class AuthService {
     }
 
     public User signup(String username, String email, String name, String password) {
+        if(userRepository.findByUsername(username) != null)
+            return null;
+
         UUID uuid;
 
-        do { // kappa
+        do {
             uuid = UUID.randomUUID();
         } while (userRepository.findByUUID(uuid.toString()) != null);
 
@@ -74,5 +77,27 @@ public class AuthService {
             throw new RuntimeException("Error updating refresh token.");
 
         return new JwtAuthenticationDTO(token, refreshToken);
+    }
+
+    public boolean logout(UUID uuid) {
+        User user = userRepository.findByUsername(uuid.toString());
+
+        if(user == null)
+            throw new UsernameNotFoundException("User not found.");
+
+        return authRepository.deleteRefreshToken(user.getUUID().toString());
+    }
+
+    public boolean changePassword(String uuid, String oldPassword, String newPassword) {
+        User user = userRepository.findByUUID(uuid);
+
+        if(user == null)
+            throw new UsernameNotFoundException("User not found.");
+
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), oldPassword));
+
+        user.setPassword(new BCryptPasswordEncoder().encode(newPassword));
+
+        return userRepository.update(user);
     }
 }

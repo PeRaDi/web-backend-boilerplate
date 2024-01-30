@@ -1,8 +1,5 @@
 package me.peradi.backend.models.dto;
 
-
-import java.util.regex.Pattern;
-
 public class SigninDTO {
 
     private String username;

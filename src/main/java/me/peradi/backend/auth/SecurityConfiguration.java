@@ -33,9 +33,13 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity.csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(request -> request
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(("api/admin/**")).hasAuthority(Role.ADMIN.toString())
+                        .requestMatchers("/api/auth/signup").permitAll()
+                        .requestMatchers("/api/auth/signin").permitAll()
+                        .requestMatchers("/api/auth/refreshToken").permitAll()
+                        .requestMatchers("/api/auth/logout").hasAnyAuthority(Role.USER.toString(), Role.SUPPORT.toString(), Role.ADMIN.toString())
+                        .requestMatchers("/api/auth/changePassword").hasAnyAuthority(Role.USER.toString(), Role.SUPPORT.toString(), Role.ADMIN.toString())
                         .requestMatchers("/api/user/**").hasAnyAuthority(Role.USER.toString(), Role.SUPPORT.toString(), Role.ADMIN.toString())
+                        .requestMatchers(("/api/admin/**")).hasAuthority(Role.ADMIN.toString())
                         .anyRequest().authenticated())
                 .sessionManagement(manager -> manager
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
