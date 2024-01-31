@@ -2,6 +2,7 @@ package me.peradi.backend.controllers;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import me.peradi.backend.models.ForgetPasswordRequest;
 import me.peradi.backend.models.User;
 import me.peradi.backend.models.dto.*;
 import me.peradi.backend.models.responses.Response;
@@ -11,13 +12,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -116,6 +113,40 @@ public class AuthController {
 
         } catch (BadCredentialsException e) {
             return new ResponseEntity<>(new Response(401, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_UNAUTHORIZED);
+        } catch (Exception e) {
+            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<>(new Response(200, "Password changed.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+    }
+
+    @PostMapping("/forgetPassword")
+    public ResponseEntity<Response> forgetPassword(HttpServletRequest req, @RequestBody ForgetPasswordDTO forgetPasswordDTO) {
+        try {
+            boolean status = authService.addForgetPasswordRequest(forgetPasswordDTO.getUsername());
+
+            if(!status)
+                return new ResponseEntity<>(new Response(500, "Error adding forget password request.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+        } catch (Exception e) {
+            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+
+        return new ResponseEntity<>(new Response(200, "Password reset email sent.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+    }
+
+    @PostMapping("/forgetPasswordWithVerifyCode")
+    public ResponseEntity<Response> forgetPassword(HttpServletRequest req, @RequestBody ForgetPasswordWithVerifyCodeDTO forgetPasswordWithVerifyCodeDTO) {
+        try {
+            User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            boolean status = authService.forgetPassword(userDetails.getUUID().toString(), forgetPasswordWithVerifyCodeDTO.getVerifyCode(), forgetPasswordWithVerifyCodeDTO.getNewPassword());
+
+            if (!status)
+                return new ResponseEntity<>(new Response(500, "Error changing password.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>(new Response(400, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_BAD_REQUEST);
         } catch (Exception e) {
             return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }

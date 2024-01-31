@@ -10,4 +10,11 @@ spring.datasource.username=
 spring.datasource.password=
 spring.datasource.driver-class-name=com.mysql.cj.jdbc.Driver
 auth.jwt.secret=
+
+spring.mail.host=
+spring.mail.port=
+spring.mail.username=
+spring.mail.password=
+spring.mail.properties.mail.smtp.auth=true
+spring.mail.properties.mail.smtp.starttls.enable=true
 ```
