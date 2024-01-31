@@ -4,6 +4,11 @@ This project is a concise Java Spring web backend boilerplate, perfect for start
 ## Configuration
 src/main/resources/application.properties file:
 ```
+admin.username=
+admin.password=
+admin.email=
+admin.name=
+
 spring.jpa.hibernate.ddl-auto=update
 spring.datasource.url=jdbc:mysql://HOST_IP:HOST_PORT/DATABASE_NAME
 spring.datasource.username=

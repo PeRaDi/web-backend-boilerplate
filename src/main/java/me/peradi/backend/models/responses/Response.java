@@ -4,13 +4,11 @@ public class Response {
     private int status;
     private String message;
     private Object values;
-    private String path;
 
-    public Response(int status, String message, Object values, String path) {
+    public Response(int status, String message, Object values) {
         this.status = status;
         this.message = message;
         this.values = values;
-        this.path = path;
     }
 
     public int getStatus() {
@@ -35,13 +33,5 @@ public class Response {
 
     public void setValues(Object values) {
         this.values = values;
-    }
-
-    public String getPath() {
-        return path;
-    }
-
-    public void setPath(String path) {
-        this.path = path;
     }
 }

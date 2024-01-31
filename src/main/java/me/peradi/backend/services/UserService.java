@@ -23,29 +23,14 @@ public class UserService implements UserDetailsService {
     }
 
     public User getByUUID(String uuid) {
-        User user = userRepository.findByUUID(uuid);
-
-        if(user == null)
-            throw new UsernameNotFoundException("User not found.");
-
-        return user;
+        return userRepository.findByUUID(uuid);
     }
 
     public User getByUsername(String username) {
-        User user = userRepository.findByUsername(username);
-
-        if(user == null)
-            throw new UsernameNotFoundException("User not found.");
-
-        return user;
+        return userRepository.findByUsername(username);
     }
 
     public User getByEmail(String email) {
-        User user = userRepository.findByEmail(email);
-
-        if(user == null)
-            throw new UsernameNotFoundException("User not found.");
-
-        return user;
+        return userRepository.findByEmail(email);
     }
 }

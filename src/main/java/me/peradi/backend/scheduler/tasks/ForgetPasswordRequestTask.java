@@ -14,6 +14,5 @@ public class ForgetPasswordRequestTask {
     @Scheduled(fixedRate = 1000 * 60) // 1 minute
     public void forgetPasswordRequestTask() {
         AuthService.forgetPasswordRequests.removeIf(forgetPasswordRequest -> forgetPasswordRequest.getCreatedAt().plusMinutes(5).isBefore(LocalDateTime.now()));
-        System.out.println(AuthService.forgetPasswordRequests.size());
     }
 }

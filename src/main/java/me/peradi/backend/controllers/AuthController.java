@@ -1,19 +1,14 @@
 package me.peradi.backend.controllers;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import me.peradi.backend.models.ForgetPasswordRequest;
 import me.peradi.backend.models.User;
 import me.peradi.backend.models.dto.*;
 import me.peradi.backend.models.responses.Response;
 import me.peradi.backend.services.AuthService;
+import me.peradi.backend.utils.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
-import org.springframework.security.authentication.LockedException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -28,129 +23,82 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<Response> signup(HttpServletRequest req, @RequestBody SignupDTO signupDTO) {
-        User user;
-        try {
-            user = authService.signup(signupDTO.getUsername(), signupDTO.getEmail(), signupDTO.getName(), signupDTO.getPassword());
+    public ResponseEntity<Response> signup(@RequestBody SignupDTO signupDTO) {
+        String username = signupDTO.getUsername();
+        String email = signupDTO.getEmail();
+        String name = signupDTO.getName();
+        String password = signupDTO.getPassword();
 
-            if(user == null)
-                return new ResponseEntity<>(new Response(400, "User already exists.", null, req.getRequestURI()), null, HttpServletResponse.SC_BAD_REQUEST);
+        if(StringUtils.isNullOrBlank(username) || StringUtils.isNullOrBlank(email) || StringUtils.isNullOrBlank(name) || StringUtils.isNullOrBlank(password))
+            return new ResponseEntity<>(new Response(400, "Username, email, name, and password must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, "Error creating user.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(new Response(200, "User created successfully.", user, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.signUp(username, email, name, password);
     }
 
     @PostMapping("/signin")
-    public ResponseEntity<Response> signin(HttpServletRequest req, @RequestBody SigninDTO signinDTO) {
-        JwtAuthenticationDTO jwtAuthenticationDTO;
+    public ResponseEntity<Response> signin(@RequestBody SigninDTO signinDTO) {
+        String username = signinDTO.getUsername();
+        String password = signinDTO.getPassword();
 
-        try {
-            jwtAuthenticationDTO = authService.signin(signinDTO.getUsername(), signinDTO.getPassword());
-        } catch (UsernameNotFoundException e) {
-            return new ResponseEntity<>(new Response(404, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_NOT_FOUND);
-        } catch(BadCredentialsException e) {
-            return new ResponseEntity<>(new Response(401, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_UNAUTHORIZED);
-        } catch(LockedException e) {
-            return new ResponseEntity<>(new Response(423, e.getMessage(), e.toString(), req.getRequestURI()), null, 423);
-        } catch(DisabledException e) {
-            return new ResponseEntity<>(new Response(403, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_FORBIDDEN);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
+        if(StringUtils.isNullOrBlank(username) || StringUtils.isNullOrBlank(password))
+            return new ResponseEntity<>(new Response(400, "Username and password must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-        return new ResponseEntity<>(new Response(200, "Signed in.", jwtAuthenticationDTO, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.signIn(username, password);
     }
 
     @PostMapping("/refreshToken")
-    public ResponseEntity<Response> refreshToken(HttpServletRequest req, @RequestBody RefreshTokenDTO refreshTokenDTO) {
-        JwtAuthenticationDTO jwtAuthenticationDTO;
+    public ResponseEntity<Response> refreshToken(@RequestBody RefreshTokenDTO refreshTokenDTO) {
+        String refreshToken = refreshTokenDTO.getRefreshToken();
 
-        try {
-            jwtAuthenticationDTO = authService.refreshToken(refreshTokenDTO.getRefreshToken());
-        } catch (BadCredentialsException e) {
-            return new ResponseEntity<>(new Response(401, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
+        if(StringUtils.isNullOrBlank(refreshToken))
+            return new ResponseEntity<>(new Response(400, "Refresh token must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-        return new ResponseEntity<>(new Response(200, "Token refreshed.", jwtAuthenticationDTO, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.refreshToken(refreshToken);
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Response> logout(HttpServletRequest req) {
-        try {
-            User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    public ResponseEntity<Response> logout() {
+        User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String uuid = userDetails.getUUID().toString();
 
-            boolean status = authService.logout(userDetails.getUUID());
-
-            if(!status)
-                return new ResponseEntity<>(new Response(500, "Error logging out.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-
-        } catch (BadCredentialsException e) {
-            return new ResponseEntity<>(new Response(401, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(new Response(200, "Logged out.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.logout(uuid);
     }
+
 
     @PostMapping("/changePassword")
-    public ResponseEntity<Response> changePassword(HttpServletRequest req, @RequestBody ChangePasswordDTO changePasswordDTO) {
-        try {
-            if(changePasswordDTO.getNewPassword().equals(changePasswordDTO.getOldPassword()))
-                return new ResponseEntity<>(new Response(400, "New password cannot be the same as old password.", null, req.getRequestURI()), null, HttpServletResponse.SC_BAD_REQUEST);
+    public ResponseEntity<Response> changePassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+        String oldPassword = changePasswordDTO.getOldPassword();
+        String newPassword = changePasswordDTO.getNewPassword();
 
-            User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if(StringUtils.isNullOrBlank(oldPassword) || StringUtils.isNullOrBlank(newPassword))
+            return new ResponseEntity<>(new Response(400, "Old password and new password must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-            boolean status = authService.changePassword(userDetails.getUUID().toString(), changePasswordDTO.getOldPassword(), changePasswordDTO.getNewPassword());
+        if(oldPassword.equals(newPassword))
+            return new ResponseEntity<>(new Response(400, "Old password and new password must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-            if(!status)
-                return new ResponseEntity<>(new Response(500, "Error changing password.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
-        } catch (BadCredentialsException e) {
-            return new ResponseEntity<>(new Response(401, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_UNAUTHORIZED);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(new Response(200, "Password changed.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.changePassword(userDetails.getUUID().toString(), changePasswordDTO.getOldPassword(), changePasswordDTO.getNewPassword());
     }
 
-    @PostMapping("/forgetPassword")
-    public ResponseEntity<Response> forgetPassword(HttpServletRequest req, @RequestBody ForgetPasswordDTO forgetPasswordDTO) {
-        try {
-            boolean status = authService.addForgetPasswordRequest(forgetPasswordDTO.getUsername());
+    @PostMapping("/forgotPassword")
+    public ResponseEntity<Response> forgotPassword(@RequestBody ForgetPasswordDTO forgetPasswordDTO) {
+        String username = forgetPasswordDTO.getUsername();
 
-            if(!status)
-                return new ResponseEntity<>(new Response(500, "Error adding forget password request.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        if(StringUtils.isNullOrBlank(username))
+            return new ResponseEntity<>(new Response(400, "Username must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(new Response(200, "Password reset email sent.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.addForgotPasswordRequest(username);
     }
 
-    @PostMapping("/forgetPasswordWithVerifyCode")
-    public ResponseEntity<Response> forgetPassword(HttpServletRequest req, @RequestBody ForgetPasswordWithVerifyCodeDTO forgetPasswordWithVerifyCodeDTO) {
-        try {
-            User userDetails = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    @PostMapping("/forgotPasswordWithVerifyCode")
+    public ResponseEntity<Response> forgotPassword(@RequestBody ForgetPasswordWithVerifyCodeDTO forgetPasswordWithVerifyCodeDTO) {
+        String verifyCode = forgetPasswordWithVerifyCodeDTO.getVerifyCode();
+        String newPassword = forgetPasswordWithVerifyCodeDTO.getNewPassword();
 
-            boolean status = authService.forgetPassword(userDetails.getUUID().toString(), forgetPasswordWithVerifyCodeDTO.getVerifyCode(), forgetPasswordWithVerifyCodeDTO.getNewPassword());
+        if(StringUtils.isNullOrBlank(verifyCode) || StringUtils.isNullOrBlank(newPassword))
+            return new ResponseEntity<>(new Response(400, "Verify code and new password must be specified.", null), null, HttpServletResponse.SC_BAD_REQUEST);
 
-            if (!status)
-                return new ResponseEntity<>(new Response(500, "Error changing password.", null, req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(new Response(400, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_BAD_REQUEST);
-        } catch (Exception e) {
-            return new ResponseEntity<>(new Response(500, e.getMessage(), e.toString(), req.getRequestURI()), null, HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-        }
-
-        return new ResponseEntity<>(new Response(200, "Password changed.", null, req.getRequestURI()), null, HttpServletResponse.SC_OK);
+        return authService.forgotPassword(verifyCode, newPassword);
     }
 }
